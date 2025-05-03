@@ -38,7 +38,7 @@ public class MessageEventResource implements MessageEventInterface {
 	@Inject MoProducer moProducer;
 	@Inject MtProducer mtProducer;
 
-	@ConfigProperty(name = "io.twentysixty.demos.auth.debug")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.debug")
 	Boolean debug;
 
 	@Override

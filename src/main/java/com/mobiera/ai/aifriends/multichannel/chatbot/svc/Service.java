@@ -23,10 +23,8 @@ import com.mobiera.ai.aifriends.multichannel.chatbot.jms.MtProducer;
 import com.mobiera.ai.aifriends.multichannel.chatbot.model.Memory;
 import com.mobiera.ai.aifriends.multichannel.chatbot.model.Session;
 import com.mobiera.ai.aifriends.multichannel.chatbot.res.c.KineticClient;
-import com.mobiera.ai.aifriends.multichannel.chatbot.res.c.MediaResource;
 import com.mobiera.aircast.api.adsafe.MoRequest;
 import com.mobiera.aircast.api.adsafe.MtRequest;
-import com.mobiera.aircast.commons.enums.ParameterName;
 import com.mobiera.ms.mno.api.json.ChargingEvent;
 import com.mobiera.ms.mno.api.json.SubscriptionEvent;
 
@@ -35,20 +33,14 @@ import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.data.message.SystemMessage;
 import io.twentysixty.sa.client.model.credential.CredentialType;
 import io.twentysixty.sa.client.model.message.BaseMessage;
-import io.twentysixty.sa.client.model.message.Claim;
 import io.twentysixty.sa.client.model.message.ContextualMenuItem;
 import io.twentysixty.sa.client.model.message.ContextualMenuSelect;
 import io.twentysixty.sa.client.model.message.ContextualMenuUpdate;
-import io.twentysixty.sa.client.model.message.IdentityProofRequestMessage;
-import io.twentysixty.sa.client.model.message.IdentityProofSubmitMessage;
-import io.twentysixty.sa.client.model.message.InvitationMessage;
 import io.twentysixty.sa.client.model.message.MediaItem;
 import io.twentysixty.sa.client.model.message.MediaMessage;
 import io.twentysixty.sa.client.model.message.MenuDisplayMessage;
 import io.twentysixty.sa.client.model.message.MenuItem;
 import io.twentysixty.sa.client.model.message.MenuSelectMessage;
-import io.twentysixty.sa.client.model.message.RequestedProofItem;
-import io.twentysixty.sa.client.model.message.SubmitProofItem;
 import io.twentysixty.sa.client.model.message.TextMessage;
 import io.twentysixty.sa.client.util.JsonUtil;
 import io.twentysixty.sa.res.c.CredentialTypeResource;
@@ -68,8 +60,6 @@ public class Service {
 	@Inject EntityManager em;
 	@Inject AnimatorService animService;
 	
-	@RestClient
-	@Inject MediaResource mediaResource;
 	
 	@RestClient
 	@Inject KineticClient kineticClient;

@@ -22,16 +22,16 @@ public class MoProducer extends AbstractProducer<BaseMessage> implements Produce
     ConnectionFactory _connectionFactory;
 
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.jms.ex.delay")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.jms.ex.delay")
 	Long _exDelay;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.jms.mo.queue.name")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.jms.mo.queue.name")
 	String _queueName;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.jms.mo.producer.threads")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.jms.mo.producer.threads")
 	Integer _threads;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.debug")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.debug")
 	Boolean _debug;
 	
 	

@@ -22,7 +22,7 @@ import jakarta.ws.rs.core.Response.Status;
 public class KineticServerV2 {
 
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.debug")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.debug")
 	Boolean debug;
 	
 	

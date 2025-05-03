@@ -19,16 +19,16 @@ public class AnimatorService {
 		
 		synchronized (lockObj) {
 			if (animators == null) {
-				Integer maxAnims = ConfigProvider.getConfig().getValue("io.twentysixty.langchain.hologram.chatbot.anim.maxcount", Integer.class);
+				Integer maxAnims = ConfigProvider.getConfig().getValue("com.mobiera.ai.chatbot.anim.maxcount", Integer.class);
 				animators = new TreeMap<Integer, Animator>();
 				
 				for (int i=0; i<maxAnims; i++) {
-					Optional<Integer> age = ConfigProvider.getConfig().getOptionalValue("io.twentysixty.langchain.hologram.chatbot.anim.\"a" + i + "\".age", Integer.class);
-					Optional<String> place = ConfigProvider.getConfig().getOptionalValue("io.twentysixty.langchain.hologram.chatbot.anim.\"a" + i + "\".place", String.class);
-					Optional<String> language = ConfigProvider.getConfig().getOptionalValue("io.twentysixty.langchain.hologram.chatbot.anim.\"a" + i + "\".language", String.class);
-					Optional<String> prompt = ConfigProvider.getConfig().getOptionalValue("io.twentysixty.langchain.hologram.chatbot.anim.\"a" + i + "\".prompt", String.class);
-					Optional<String> name = ConfigProvider.getConfig().getOptionalValue("io.twentysixty.langchain.hologram.chatbot.anim.\"a" + i + "\".name", String.class);
-					Optional<String> hello = ConfigProvider.getConfig().getOptionalValue("io.twentysixty.langchain.hologram.chatbot.anim.\"a" + i + "\".hello", String.class);
+					Optional<Integer> age = ConfigProvider.getConfig().getOptionalValue("com.mobiera.ai.chatbot.anim.\"a" + i + "\".age", Integer.class);
+					Optional<String> place = ConfigProvider.getConfig().getOptionalValue("com.mobiera.ai.chatbot.anim.\"a" + i + "\".place", String.class);
+					Optional<String> language = ConfigProvider.getConfig().getOptionalValue("com.mobiera.ai.chatbot.anim.\"a" + i + "\".language", String.class);
+					Optional<String> prompt = ConfigProvider.getConfig().getOptionalValue("com.mobiera.ai.chatbot.anim.\"a" + i + "\".prompt", String.class);
+					Optional<String> name = ConfigProvider.getConfig().getOptionalValue("com.mobiera.ai.chatbot.anim.\"a" + i + "\".name", String.class);
+					Optional<String> hello = ConfigProvider.getConfig().getOptionalValue("com.mobiera.ai.chatbot.anim.\"a" + i + "\".hello", String.class);
 					
 					if (	age.isPresent() 
 							&& place.isPresent() && (place.get().length()>0)

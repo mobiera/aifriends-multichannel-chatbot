@@ -24,7 +24,7 @@ public class ConnectionEventResource implements ConnectionEventInterface {
 	private static Logger logger = Logger.getLogger(ConnectionEventResource.class);
 
 	@Inject Service service;
-	@ConfigProperty(name = "io.twentysixty.demos.auth.debug")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.debug")
 	Boolean debug;
 
 	

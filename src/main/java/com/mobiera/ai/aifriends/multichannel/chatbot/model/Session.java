@@ -2,7 +2,6 @@ package com.mobiera.ai.aifriends.multichannel.chatbot.model;
 
 import java.io.Serializable;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.UUID;
 
 import org.hibernate.annotations.DynamicInsert;

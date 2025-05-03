@@ -27,17 +27,17 @@ public class MtConsumer extends AbstractConsumer<BaseMessage> implements Consume
     ConnectionFactory _connectionFactory;
 
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.jms.ex.delay")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.jms.ex.delay")
 	Long _exDelay;
 	
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.jms.mt.queue.name")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.jms.mt.queue.name")
 	String _queueName;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.jms.mt.consumer.threads")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.jms.mt.consumer.threads")
 	Integer _threads;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.debug")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.debug")
 	Boolean _debug;
 	
 	
