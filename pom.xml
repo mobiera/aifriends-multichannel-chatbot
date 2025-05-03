@@ -2,10 +2,10 @@
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>io.2060.demos</groupId>
-  <artifactId>aifriends-hologram-chatbot</artifactId>
+  <groupId>com.mobiera.ai</groupId>
+  <artifactId>aifriends-multichannel-chatbot</artifactId>
   <version>1.0.0</version>
-  <name>DIDComm AI Friends Chatbot</name>
+  <name>AI Friends Multichannel Chatbot</name>
   <description>Deploy your own aifriends based DIDcomm chatbot</description>
   <url>https://github.com/2060-io/langchain-hologram-chatbot</url>
   <licenses>
@@ -23,9 +23,9 @@
     </developer>
   </developers>
   <scm>
-    <connection>scm:git:git://github.com/2060-io/aifriends-hologram-chatbot.git</connection>
-    <developerConnection>scm:git:ssh://github.com/2060-io/aifriends-hologram-chatbot.git</developerConnection>
-    <url>https://github.com/2060-io/aifriends-hologram-chatbot/tree/main</url>
+    <connection>scm:git:git://github.com/mobiera/aifriends-multichannel-chatbot.git</connection>
+    <developerConnection>scm:git:ssh://github.com/mobiera/aifriends-multichannel-chatbot.git</developerConnection>
+    <url>https://github.com/mobiera/aifriends-multichannel-chatbot/tree/main</url>
   </scm>
    
   <properties>
@@ -62,6 +62,17 @@
             <artifactId>javax.mail</artifactId>
             <version>1.6.2</version>
         </dependency>
+        		 <dependency>
+            <groupId>com.mobiera.libs</groupId>
+            <artifactId>aircast-api-jakarta</artifactId>
+            <version>1.2</version>
+        </dependency>
+        
+        <dependency>
+  <groupId>com.mobiera.libs</groupId>
+  <artifactId>aircast-api</artifactId>
+  <version>2.59</version>
+   </dependency>
        <dependency>
          <groupId>org.graalvm.sdk</groupId>
          <artifactId>graal-sdk</artifactId>
