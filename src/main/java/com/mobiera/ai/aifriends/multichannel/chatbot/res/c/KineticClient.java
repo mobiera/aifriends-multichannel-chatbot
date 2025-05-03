@@ -2,6 +2,8 @@ package com.mobiera.ai.aifriends.multichannel.chatbot.res.c;
 
 import java.util.List;
 
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+
 import com.mobiera.aircast.api.adsafe.GetIdentifierRequest;
 import com.mobiera.aircast.api.adsafe.GetLandingRequest;
 import com.mobiera.aircast.api.adsafe.GetPricepointRequest;
@@ -32,6 +34,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 
+@RegisterRestClient
 @Path("")
 public interface KineticClient {
 
