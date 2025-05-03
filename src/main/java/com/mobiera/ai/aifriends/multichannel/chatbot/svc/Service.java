@@ -84,92 +84,92 @@ public class Service {
 	@Inject CredentialTypeResource credentialTypeResource;
 	
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.debug")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.debug")
 	Boolean debug;
 	
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.credential_issuer")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.credential_issuer")
 	String credentialIssuer;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.credential_issuer.avatar")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.credential_issuer.avatar")
 	String invitationImageUrl;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.credential_issuer.label")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.credential_issuer.label")
 	String invitationLabel;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.enabled")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.enabled")
 	Boolean authEnabled;
 	
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.id_credential_def")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.id_credential_def")
 	String credDef;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.messages.welcome")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.welcome")
 	String WELCOME;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.messages.welcome2")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.welcome2")
 	Optional<String> WELCOME2;
 
-	@ConfigProperty(name = "io.twentysixty.demos.auth.messages.welcome3")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.welcome3")
 	Optional<String> WELCOME3;
 
-	@ConfigProperty(name = "io.twentysixty.demos.auth.messages.auth_success")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.auth_success")
 	Optional<String> AUTH_SUCCESS;
 
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.messages.nocred")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.nocred")
 	String NO_CRED_MSG;
 
-	@ConfigProperty(name = "io.twentysixty.demos.auth.request.citizenid")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.request.citizenid")
 	Boolean requestCitizenId;
 
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.request.firstname")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.request.firstname")
 	Boolean requestFirstname;
 
-	@ConfigProperty(name = "io.twentysixty.demos.auth.request.lastname")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.request.lastname")
 	Boolean requestLastname;
 
-	@ConfigProperty(name = "io.twentysixty.demos.auth.request.photo")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.request.photo")
 	Boolean requestPhoto;
 
-	@ConfigProperty(name = "io.twentysixty.demos.auth.request.avatarname")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.request.avatarname")
 	Boolean requestAvatarname;
 
 		
-	@ConfigProperty(name = "io.twentysixty.demos.auth.language")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.language")
 	Optional<String> language;
 
-	@ConfigProperty(name = "io.twentysixty.demos.auth.vision.face.verification.url")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.vision.face.verification.url")
 	String faceVerificationUrl;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.vision.redirdomain")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.vision.redirdomain")
 	Optional<String> redirDomain;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.vision.redirdomain.q")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.vision.redirdomain.q")
 	Optional<String> qRedirDomain;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.vision.redirdomain.d")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.vision.redirdomain.d")
 	Optional<String> dRedirDomain;
 	
-	@ConfigProperty(name = "io.twentysixty.langchain.hologram.chatbot.anim.random.commands")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.anim.random.commands")
 	Optional<String> changeCommands;
 	
-	@ConfigProperty(name = "io.twentysixty.langchain.hologram.chatbot.maxuserinputlength")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.maxuserinputlength")
 	Integer maxUserInputLength;
 	
-	@ConfigProperty(name = "io.twentysixty.langchain.hologram.chatbot.msisdn.prefix")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.msisdn.prefix")
 	String msisdnCountryPrefix;
-	@ConfigProperty(name = "io.twentysixty.langchain.hologram.chatbot.msisdn.minlength")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.msisdn.minlength")
 	Integer msisdnMinLength;
-	@ConfigProperty(name = "io.twentysixty.langchain.hologram.chatbot.msisdn.maxlength")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.msisdn.maxlength")
 	Integer msisdnMaxLength;
 	
-	@ConfigProperty(name = "io.twentysixty.langchain.hologram.chatbot.vaservicefk")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.vaservicefk")
 	Long vaServiceFk;
-	@ConfigProperty(name = "io.twentysixty.langchain.hologram.chatbot.endpointfk")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.endpointfk")
 	Long endpointFk;
-	@ConfigProperty(name = "io.twentysixty.langchain.hologram.chatbot.password")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.password")
 	String endpointPassword;
 	
 	
@@ -193,19 +193,19 @@ public class Service {
 	private Random random = new Random();
 	
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.messages.root.menu.title")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.root.menu.title")
 	String ROOT_MENU_TITLE;
 	
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.messages.root.menu.option1")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.root.menu.option1")
 	String ROOT_MENU_OPTION1;
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.messages.root.menu.no_cred")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.root.menu.no_cred")
 	Optional<String> ROOT_MENU_NO_CRED;
 	
 	
 	
-	@ConfigProperty(name = "io.twentysixty.demos.auth.messages.option1")
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.option1")
 	String OPTION1_MSG;
 	
 	
