@@ -23,8 +23,13 @@ import com.mobiera.ai.aifriends.multichannel.chatbot.jms.MtProducer;
 import com.mobiera.ai.aifriends.multichannel.chatbot.model.Memory;
 import com.mobiera.ai.aifriends.multichannel.chatbot.model.Session;
 import com.mobiera.ai.aifriends.multichannel.chatbot.res.c.KineticClient;
+import com.mobiera.aircast.api.adsafe.GetPricepointRequest;
+import com.mobiera.aircast.api.adsafe.ListPricepointsRequest;
 import com.mobiera.aircast.api.adsafe.MoRequest;
 import com.mobiera.aircast.api.adsafe.MtRequest;
+import com.mobiera.aircast.api.adsafe.SubscribeRequest;
+import com.mobiera.aircast.api.vo.PricepointVO;
+import com.mobiera.aircast.commons.enums.PricepointType;
 import com.mobiera.ms.mno.api.json.ChargingEvent;
 import com.mobiera.ms.mno.api.json.SubscriptionEvent;
 
@@ -89,6 +94,11 @@ public class Service {
 	
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.enabled")
 	Boolean authEnabled;
+	
+	
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.billing.enabled")
+	Boolean billingEnabled;
+	
 	
 	
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.id_credential_def")
@@ -176,6 +186,11 @@ public class Service {
 	private static String CMD_ROOT_MENU_ANIMATOR = "/anim";
 	private static String CMD_ROOT_MENU_RANDOM = "/random";
 	
+	private static String CMD_ROOT_MENU_SUBSCRIBE = "/subscribe";
+	
+	private static final String SUBSCRIBE_CONFIRM_YES_VALUE = "/yes";
+	private static final String SUBSCRIBE_CONFIRM_NO_VALUE = "/no";
+	
 	private static String CMD_ROOT_MENU_SET_MODEL = "/set";
 	
 	private static String CMD_ROOT_MENU_CLEAR = "/clear";
@@ -242,8 +257,8 @@ public class Service {
 	}
 
 
-	private BaseMessage getPinAuthRequest(UUID connectionId, UUID threadId) {
-		return TextMessage.build(connectionId, threadId, this.getMessage("ENTER_PIN"));
+	private BaseMessage getPinAuthRequest(UUID connectionId, UUID threadId, String pin) {
+		return TextMessage.build(connectionId, threadId, this.getMessage("ENTER_PIN").replaceAll("PIN", pin));
 	}
 
 	private BaseMessage getInvalidPin(UUID connectionId, UUID threadId) {
@@ -427,140 +442,265 @@ public class Service {
 			mm = (MediaMessage) message;
 			content = "media";
 		}
+		
+		
+		
+		
+		
 		if (content != null) {
 			content = content.strip();
 			
-			if (content.length()>maxUserInputLength) {
-				content = content.substring(0, maxUserInputLength);
-			}
-					
-			if (content.equals(CMD_ROOT_MENU_AUTHENTICATE.toString())) {
-				session.setVerifyingMsisdn(null);
-				session.setVerifyingPin(null);
-				mtProducer.sendMessage(this.getMsisdnAuthRequest(message.getConnectionId(), message.getThreadId()));
-			} else if (content.equals(CMD_ROOT_MENU_OPTION1.toString())) {
-				mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , OPTION1_MSG));
-
-			} else if (content.equals(CMD_ROOT_MENU_LOGOUT.toString())) {
-				if (session != null) {
-					session.setAuthTs(null);
-					session.setMsisdn(null);
-					session = em.merge(session);
-				}
-				mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("UNAUTHENTICATED")));
-
-			} else if (content.equals(CMD_ROOT_MENU_HELP.toString())) {
-				
-				mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("USAGE")));
-
-			} else if (content.equals(CMD_ROOT_MENU_CLEAR.toString())) {
-				
-				if (session != null) {
-					
-					if (session.getMemory() != null) {
-						this.resetMemory(session.getMemory().getMemoryId());
-					}
-					
-				}
-				
-				mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("CLEANED_HISTORY")));
-
-			}  else if ((session != null) && ( (session.getAuthTs() != null)|| (!authEnabled) )) {
-				
-				if (content.startsWith(CMD_ROOT_MENU_ANIMATOR.toString())) {
-					
-					String[] specifiedAnim = content.split(" ");
-					if (specifiedAnim.length == 1) {
-						mtProducer.sendMessage(this.getAnimatorMenu(message.getConnectionId(), message.getThreadId()));
-					} else {
-						Integer anim = null;
-						try {
-							anim = Integer.parseInt(specifiedAnim[1]);
-							this.setAnimator(session, anim);
-							mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("ANIM_SELECTED").replaceAll("ANIMATOR", getAnimatorLabel(session))));
-
-							String result = bot.chat(session.getMemory().getMemoryId(), animService.get(anim).getHello());
-							mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
-						} catch (Exception e) {
+			
+			boolean authenticated = true;
+			
+			if (authEnabled) {
+				if (session.getAuthTs() == null) {
+					authenticated = false;
+					if (session.getVerifyingMsisdn() != null) {
+						// expecting pin
+						if (session.getVerifyingPin().equals(content)) {
 							
+							successfullAuth(session, message.getConnectionId(), message.getThreadId());
+							
+							if (session.getMemory() != null) {
+								mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("ANIM_SELECTED").replaceAll("ANIMATOR", getAnimatorLabel(session))));
+
+								String result = bot.chat(session.getMemory().getMemoryId(), animService.get(session.getMemory().getAnimator()).getHello());
+								mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
+							} else {
+								mtProducer.sendMessage(this.getAnimatorMenu(message.getConnectionId(), message.getThreadId()));
+							}
+							
+						} else {
+							mtProducer.sendMessage(this.getInvalidPin(message.getConnectionId(), message.getThreadId()));
 						}
+					} else if (this.isValidMsisdn(content)) {
+						
+						
+						session.setVerifyingMsisdn(content);
+						session.setVerifyingPin("" + random.nextInt(10000));
+						session = em.merge(session);
+						mtProducer.sendMessage(getPinAuthRequest(message.getConnectionId(), message.getThreadId(), session.getVerifyingPin()));
+						
+					} else {
+						mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("ERROR_NOT_AUTHENTICATED")));
+						
+						session.setVerifyingMsisdn(null);
+						session.setVerifyingPin(null);
+						session.setMsisdn(null);
+						mtProducer.sendMessage(this.getMsisdnAuthRequest(message.getConnectionId(), message.getThreadId()));
+
+						
+
+					}
+				}
+			}
+			
+			boolean charged = true;
+			
+			if (!authenticated) {
+				charged = false;
+			}
+			
+			if (authenticated && billingEnabled) {
+				
+				if (session.getSubscriptionTs() == null) {
+					charged = false;
+					
+					// not subscribed
+					if (content.startsWith(CMD_ROOT_MENU_SUBSCRIBE.toString())) {
+						String[] sd = content.split(" ");
+						if (sd.length>1) {
+							Long ppId = null;
+							try {
+								ppId = Long.parseLong(sd[1]);
+								mtProducer.sendMessage(this.buildConfirmationMenu(ppId, message.getConnectionId(), message.getThreadId()));
+								
+							} catch (Exception e) {
+								logger.error("", e);
+								mtProducer.sendMessage(buildSubscriptionOfferMenu(message.getConnectionId(), message.getThreadId()));
+
+							}
+						} else {
+							mtProducer.sendMessage(buildSubscriptionOfferMenu(message.getConnectionId(), message.getThreadId()));
+
+						}
+					} if (content.startsWith(SUBSCRIBE_CONFIRM_YES_VALUE.toString())) {
+						String[] sd = content.split(" ");
+						if (sd.length>1) {
+							Long ppId = null;
+							try {
+								ppId = Long.parseLong(sd[1]);
+								GetPricepointRequest gpp = new GetPricepointRequest();
+								gpp.setEndpointFk(endpointFk);
+								gpp.setPassword(endpointPassword);
+								gpp.setPricepointFk(ppId);
+								PricepointVO pp = kineticClient.getPricepoint(gpp);
+										
+								if (pp != null) {
+									Long idFk = pp.getDefaultKeywordIdentifierFk();
+									
+									SubscribeRequest sr = new SubscribeRequest();
+									sr.setPassword(endpointPassword);
+									sr.setEndpointFk(endpointFk);
+									sr.setIdentifierFk(idFk);
+									sr.setUserId(session.getMsisdn());
+									
+									kineticClient.subscribe(sr);
+									
+									mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("SUBSCRIPION_REQUESTED").replaceAll("PRICEPOINT", pp.getName())));
+
+								}
+								
+							} catch (Exception e) {
+								logger.error("", e);
+								mtProducer.sendMessage(buildSubscriptionOfferMenu(message.getConnectionId(), message.getThreadId()));
+
+							}
+						} else {
+							mtProducer.sendMessage(buildSubscriptionOfferMenu(message.getConnectionId(), message.getThreadId()));
+
+						}
+					} else {
+						mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("SUBSCRIPTION_REQUIRED")));
+						mtProducer.sendMessage(buildSubscriptionOfferMenu(message.getConnectionId(), message.getThreadId()));
 					}
 					
+				} else if ((session.getExpireTs() == null) || (session.getExpireTs().compareTo(Instant.now())<0)) {
+					charged = false;
+					// not charged or expired
+					mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("EXPIRED_SUBSCRIPTION")));
 
-				} else if (content.startsWith(CMD_ROOT_MENU_RANDOM.toString()) || this.changeCommand(content)) {
+				}
+			}
+			
+			if (charged) {
+				
+				if (content.length()>maxUserInputLength) {
+					content = content.substring(0, maxUserInputLength);
+				}
+						
+				if (content.equals(CMD_ROOT_MENU_AUTHENTICATE.toString()) && (session.getAuthTs() == null)) {
 					
+					session.setVerifyingMsisdn(null);
+					session.setVerifyingPin(null);
+					mtProducer.sendMessage(this.getMsisdnAuthRequest(message.getConnectionId(), message.getThreadId()));
 					
-					TreeMap<Integer,Animator> anims = animService.getAnimators();
-					
-					if (anims.size() == 1) {
-						this.setAnimator(session, 0);
-						mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("ANIM_SELECTED").replaceAll("ANIMATOR", getAnimatorLabel(session))));
+				} else if (content.equals(CMD_ROOT_MENU_OPTION1.toString())) {
+					mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , OPTION1_MSG));
 
-						String result = bot.chat(session.getMemory().getMemoryId(), animService.get(0).getHello());
-						mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
-					} else {
-						Set<Integer> keys = anims.keySet();
-						List<Integer> others = new ArrayList<Integer>();
-						Integer currentAnim = null;
+				} else if (content.equals(CMD_ROOT_MENU_LOGOUT.toString())) {
+					if (session != null) {
+						session.setAuthTs(null);
+						session.setMsisdn(null);
+						session = em.merge(session);
+					}
+					mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("UNAUTHENTICATED")));
+
+					if (authEnabled) {
+						session.setVerifyingMsisdn(null);
+						session.setVerifyingPin(null);
+						mtProducer.sendMessage(this.getMsisdnAuthRequest(message.getConnectionId(), message.getThreadId()));
+					}
+					
+				} else if (content.equals(CMD_ROOT_MENU_HELP.toString())) {
+					
+					mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("USAGE")));
+
+				} else if (content.equals(CMD_ROOT_MENU_CLEAR.toString())) {
+					
+					if (session != null) {
+						
 						if (session.getMemory() != null) {
-							currentAnim = session.getMemory().getAnimator();
+							this.resetMemory(session.getMemory().getMemoryId());
 						}
-						for (Integer current: keys) {
-							if (currentAnim != null) {
-								if (current.intValue() != currentAnim.intValue()) {
-									others.add(current);
-								}
+						
+					}
+					
+					mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("CLEANED_HISTORY")));
+
+				}  else if ((session != null) && ( (session.getAuthTs() != null)|| (!authEnabled) )) {
+					
+					boolean validSubscription = true;
+					
+					if (billingEnabled) {
+						
+						
+						
+					} 
+					
+					if (validSubscription) {
+						if (content.startsWith(CMD_ROOT_MENU_ANIMATOR.toString())) {
+							
+							String[] specifiedAnim = content.split(" ");
+							if (specifiedAnim.length == 1) {
+								mtProducer.sendMessage(this.getAnimatorMenu(message.getConnectionId(), message.getThreadId()));
 							} else {
-								others.add(current);
+								Integer anim = null;
+								try {
+									anim = Integer.parseInt(specifiedAnim[1]);
+									this.setAnimator(session, anim);
+									mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("ANIM_SELECTED").replaceAll("ANIMATOR", getAnimatorLabel(session))));
+
+									String result = bot.chat(session.getMemory().getMemoryId(), animService.get(anim).getHello());
+									mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
+								} catch (Exception e) {
+									
+								}
+							}
+							
+
+						} else if (content.startsWith(CMD_ROOT_MENU_RANDOM.toString()) || this.changeCommand(content)) {
+							
+							
+							TreeMap<Integer,Animator> anims = animService.getAnimators();
+							
+							if (anims.size() == 1) {
+								this.setAnimator(session, 0);
+								mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("ANIM_SELECTED").replaceAll("ANIMATOR", getAnimatorLabel(session))));
+
+								String result = bot.chat(session.getMemory().getMemoryId(), animService.get(0).getHello());
+								mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
+							} else {
+								Set<Integer> keys = anims.keySet();
+								List<Integer> others = new ArrayList<Integer>();
+								Integer currentAnim = null;
+								if (session.getMemory() != null) {
+									currentAnim = session.getMemory().getAnimator();
+								}
+								for (Integer current: keys) {
+									if (currentAnim != null) {
+										if (current.intValue() != currentAnim.intValue()) {
+											others.add(current);
+										}
+									} else {
+										others.add(current);
+									}
+								}
+								
+								Integer newAnim = others.get(random.nextInt(others.size()));
+								this.setAnimator(session, newAnim);
+								mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("ANIM_SELECTED").replaceAll("ANIMATOR", getAnimatorLabel(session))));
+
+								String result = bot.chat(session.getMemory().getMemoryId(), animService.get(newAnim).getHello());
+								mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
+							}
+							
+							
+
+						} else {
+							if (session.getMemory() == null) {
+								mtProducer.sendMessage(this.getAnimatorMenu(message.getConnectionId(), message.getThreadId()));
+							} else {
+								
+								String result = bot.chat(session.getMemory().getMemoryId(), content);
+								mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
 							}
 						}
 						
-						Integer newAnim = others.get(random.nextInt(others.size()));
-						this.setAnimator(session, newAnim);
-						mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("ANIM_SELECTED").replaceAll("ANIMATOR", getAnimatorLabel(session))));
-
-						String result = bot.chat(session.getMemory().getMemoryId(), animService.get(newAnim).getHello());
-						mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
-					}
+					} 
 					
-					
-
-				} else {
-					if (session.getMemory() == null) {
-						mtProducer.sendMessage(this.getAnimatorMenu(message.getConnectionId(), message.getThreadId()));
-					} else {
-						
-						String result = bot.chat(session.getMemory().getMemoryId(), content);
-						mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
-					}
 				}
-				
-				
-				
-			} else {
-				
-				// try to get MSISDN
-				
-				if (session.getVerifyingMsisdn() != null) {
-					// expecting pin
-					if (session.getVerifyingPin().equals(content)) {
-						
-						// 
-						
-						this.successfullAuth(session, message.getConnectionId(), message.getThreadId());
-						
-					} else {
-						mtProducer.sendMessage(this.getInvalidPin(message.getConnectionId(), message.getThreadId()));
-					}
-				} else if (this.isValidMsisdn(content)) {
-					session.setVerifyingMsisdn(content);
-					mtProducer.sendMessage(this.getPinAuthRequest(message.getConnectionId(), message.getThreadId()));
-					
-				} else {
-					mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("ERROR_NOT_AUTHENTICATED")));
-
-				}
-				
 			}
 			
 			
@@ -571,6 +711,68 @@ public class Service {
 	
 	
 	
+	private BaseMessage buildSubscriptionOfferMenu(UUID connectionId, UUID threadId) {
+		ListPricepointsRequest lpps = new ListPricepointsRequest();
+		lpps.setEndpointFk(endpointFk);
+		lpps.setVaServiceFk(vaServiceFk);
+		lpps.setPassword(endpointPassword);
+		List<PricepointVO> pps = kineticClient.listPricepoints(lpps);
+		
+		
+		
+		
+		List<MenuItem> menuItems = new ArrayList<MenuItem>();
+		
+		MenuDisplayMessage offerList = new MenuDisplayMessage();
+		offerList.setPrompt(getMessage("SUBSCRIPTION_OFFER_MENU_TITLE"));
+		
+		
+		for (PricepointVO pp: pps) {
+			MenuItem am = new MenuItem();
+			am.setId(CMD_ROOT_MENU_SUBSCRIBE + " " + pp.getId());
+			am.setText(pp.getName());
+			menuItems.add(am);
+			
+		}
+		
+		offerList.setConnectionId(connectionId);
+		offerList.setThreadId(threadId);
+		offerList.setMenuItems(menuItems);
+		return offerList;
+		
+	}
+
+	
+	private BaseMessage buildConfirmationMenu(Long pricepointFk, UUID connectionId, UUID threadId) {
+		
+		MenuDisplayMessage confirm = new MenuDisplayMessage();
+		confirm.setPrompt(getMessage("SUBSCRIBE_CONFIRM_TITLE"));
+
+		MenuItem yes = new MenuItem();
+		yes.setId(SUBSCRIBE_CONFIRM_YES_VALUE + " " + pricepointFk);
+		yes.setText(getMessage("SUBSCRIBE_CONFIRM_YES"));
+		
+		MenuItem no = new MenuItem();
+		no.setId(SUBSCRIBE_CONFIRM_NO_VALUE);
+		no.setText(getMessage("SUBSCRIBE_CONFIRM_NO"));
+		
+		List<MenuItem> menuItems = new ArrayList<MenuItem>();
+		menuItems.add(yes);
+		menuItems.add(no);
+		
+		
+		confirm.setMenuItems(menuItems);
+
+
+		confirm.setConnectionId(connectionId);
+		confirm.setThreadId(threadId);
+		
+		return confirm;
+	}
+
+
+
+
 	private boolean isValidMsisdn(String src) {
 		
 		if (src == null) return false;
@@ -866,7 +1068,7 @@ public class Service {
 		
 		String content = request.getText();
 		
-		if ( authEnabled && (session.getExpireTs() == null) || (session.getExpireTs().compareTo(Instant.now())<0)) {
+		if ( billingEnabled && (session.getExpireTs() == null) || (session.getExpireTs().compareTo(Instant.now())<0)) {
 			MtRequest mt = new MtRequest();
 			mt.setText(this.getMessage("EXPIRED_SUBSCRIPTION"));
 			mt.setUserId(request.getUserId());
