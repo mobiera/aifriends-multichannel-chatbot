@@ -790,14 +790,77 @@ public class Service {
 
 
 	public void kineticNotifyPhoneCharging(ChargingEvent event) {
-		// TODO Auto-generated method stub
-		
+		Session session = this.getSessionWithMsisdn(event.getUserTpda());
+		// 	FULL, PARTIAL, COMPLEMENT, NO_FUNDS, TEMP_ERROR, PERM_ERROR, DISABLED_ENTITY, GIVING_UP, CONNECTION_ERROR
+
+		switch (event.getChargingEventType()) {
+		case FULL:
+		case PARTIAL:
+		case COMPLEMENT: {
+			session.setExpireTs(event.getSubscriptionExpireTs());
+			session = em.merge(session);
+			break;
+		}
+		default: {
+			break;
+		}
+		}
 	}
 
 
 
 	public void kineticNotifyPhoneSubscription(SubscriptionEvent event) {
-		// TODO Auto-generated method stub
+		
+		Session session = this.getSessionWithMsisdn(event.getUserTpda());
+		
+		
+		switch (event.getSubscriptionEventType()) {
+		case SUBSCRIBED: {
+			session.setCanceledTs(null);
+			session.setSubscriptionTs(Instant.now());
+			session = em.merge(session);
+			
+			if (session.getConnectionId() == null) {
+				MoRequest mo = new MoRequest();
+				mo.setUserId(event.getUserTpda());
+				this.kineticNotifyMo(mo);
+			}
+			break;
+		}
+		
+		case UNSUBSCRIBED: {
+			session.setCanceledTs(Instant.now());
+			session = em.merge(session);
+			
+			MtRequest mt = new MtRequest();
+			mt.setText(this.getMessage("UNSUBSCRIBED"));
+			mt.setUserId(event.getUserId());
+			mt.setRequestId(UUID.randomUUID());
+			mt.setVaServiceFk(vaServiceFk);
+			mt.setEndpointFk(endpointFk);
+			mt.setPassword(endpointPassword);
+			
+			
+			kineticClient.sentMt(mt);
+			
+			if (session.getConnectionId() != null) {
+				try {
+					mtProducer.sendMessage(TextMessage.build(session.getConnectionId(), null , this.getMessage("UNSUBSCRIBED")));
+				} catch (Exception e) {
+					logger.error("kineticNotifyPhoneSubscription: ", e);
+				}
+
+			}
+			
+			break;
+		}
+		
+		default: {
+			
+			break;
+		}
+		
+		}
 		
 	}
 
@@ -807,12 +870,24 @@ public class Service {
 		
 		if (!this.isValidMsisdn(request.getUserId())) {
 			logger.error("kineticNotifyMo: ignoring invalid msisdn: " + request.getUserId() + " " + request.getText());
+			return;
 		}
 		Session session = this.getSessionWithMsisdn(request.getUserId());
 		
 		String content = request.getText();
 		
-		if ((session.getMemory() == null) || content.startsWith(CMD_ROOT_MENU_RANDOM.toString()) || this.changeCommand(content)) {
+		if ( authEnabled && (session.getExpireTs() == null) || (session.getExpireTs().compareTo(Instant.now())<0)) {
+			MtRequest mt = new MtRequest();
+			mt.setText(this.getMessage("EXPIRED_SUBSCRIPTION"));
+			mt.setUserId(request.getUserId());
+			mt.setRequestId(UUID.randomUUID());
+			mt.setVaServiceFk(vaServiceFk);
+			mt.setEndpointFk(endpointFk);
+			mt.setPassword(endpointPassword);
+			
+			
+			kineticClient.sentMt(mt);
+		} else if ((session.getMemory() == null) || content.startsWith(CMD_ROOT_MENU_RANDOM.toString()) || this.changeCommand(content)) {
 			
 			
 			TreeMap<Integer,Animator> anims = animService.getAnimators();
@@ -923,7 +998,13 @@ public class Service {
 			kineticClient.sentMt(mt);
 
 		}  else {
-				
+			
+			content = content.strip();
+			
+			if (content.length()>maxUserInputLength) {
+				content = content.substring(0, maxUserInputLength);
+			}
+			
 			String result = bot.chat(session.getMemory().getMemoryId(), content);
 			
 			MtRequest mt = new MtRequest();

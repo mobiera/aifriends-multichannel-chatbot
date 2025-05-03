@@ -67,6 +67,16 @@ public class Session implements Serializable {
 	private Instant authTs;
 	
 	
+	@Column(columnDefinition="timestamptz")
+	private Instant subscriptionTs;
+	
+	@Column(columnDefinition="timestamptz")
+	private Instant expireTs;
+	
+	@Column(columnDefinition="timestamptz")
+	private Instant canceledTs;
+	
+	
 	public UUID getConnectionId() {
 		return connectionId;
 	}
@@ -140,6 +150,30 @@ public class Session implements Serializable {
 
 	public void setVerifyingPin(String verifyingPin) {
 		this.verifyingPin = verifyingPin;
+	}
+
+	public Instant getSubscriptionTs() {
+		return subscriptionTs;
+	}
+
+	public void setSubscriptionTs(Instant subscriptionTs) {
+		this.subscriptionTs = subscriptionTs;
+	}
+
+	public Instant getExpireTs() {
+		return expireTs;
+	}
+
+	public void setExpireTs(Instant expireTs) {
+		this.expireTs = expireTs;
+	}
+
+	public Instant getCanceledTs() {
+		return canceledTs;
+	}
+
+	public void setCanceledTs(Instant canceledTs) {
+		this.canceledTs = canceledTs;
 	}
 
 	
