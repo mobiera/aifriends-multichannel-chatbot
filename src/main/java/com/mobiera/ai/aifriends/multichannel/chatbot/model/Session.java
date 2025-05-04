@@ -44,7 +44,6 @@ public class Session implements Serializable {
 	@Column(unique = true)
 	private UUID connectionId;
 	
-	@Column(unique = true)
 	private String msisdn;
 	
 	private String verifyingMsisdn;

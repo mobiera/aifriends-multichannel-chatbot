@@ -82,15 +82,9 @@ public class Service {
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.debug")
 	Boolean debug;
 	
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.fakekinetic")
+	Boolean fakeKinetic;
 	
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.credential_issuer")
-	String credentialIssuer;
-	
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.credential_issuer.avatar")
-	String invitationImageUrl;
-	
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.credential_issuer.label")
-	String invitationLabel;
 	
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.enabled")
 	Boolean authEnabled;
@@ -98,11 +92,6 @@ public class Service {
 	
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.billing.enabled")
 	Boolean billingEnabled;
-	
-	
-	
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.id_credential_def")
-	String credDef;
 	
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.welcome")
 	String WELCOME;
@@ -120,39 +109,11 @@ public class Service {
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.messages.nocred")
 	String NO_CRED_MSG;
 
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.request.citizenid")
-	Boolean requestCitizenId;
-
-	
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.request.firstname")
-	Boolean requestFirstname;
-
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.request.lastname")
-	Boolean requestLastname;
-
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.request.photo")
-	Boolean requestPhoto;
-
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.request.avatarname")
-	Boolean requestAvatarname;
-
-		
+			
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.language")
 	Optional<String> language;
 
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.vision.face.verification.url")
-	String faceVerificationUrl;
-	
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.vision.redirdomain")
-	Optional<String> redirDomain;
-	
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.vision.redirdomain.q")
-	Optional<String> qRedirDomain;
-	
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.auth.vision.redirdomain.d")
-	Optional<String> dRedirDomain;
-	
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.anim.random.commands")
+		@ConfigProperty(name = "com.mobiera.ai.chatbot.anim.random.commands")
 	Optional<String> changeCommands;
 	
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.maxuserinputlength")
@@ -257,16 +218,38 @@ public class Service {
 	}
 
 
-	private BaseMessage getPinAuthRequest(UUID connectionId, UUID threadId, String pin) {
-		return TextMessage.build(connectionId, threadId, this.getMessage("ENTER_PIN").replaceAll("PIN", pin));
+	private Session getPinAuthRequest(Session session, UUID connectionId, UUID threadId, String msisdn) throws Exception {
+		
+		session.setVerifyingMsisdn(msisdn);
+		session.setVerifyingPin("" + random.nextInt(10000));
+		session = em.merge(session);
+		
+		
+		MtRequest mt = new MtRequest();
+		mt.setText(this.getMessage("YOUR_PIN").replaceAll("PIN", session.getVerifyingPin()));
+		mt.setUserId(msisdn);
+		mt.setRequestId(UUID.randomUUID());
+		mt.setVaServiceFk(vaServiceFk);
+		mt.setEndpointFk(endpointFk);
+		mt.setPassword(endpointPassword);
+		
+		if (fakeKinetic) {
+			logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+		} else {
+			kineticClient.sentMt(mt);
+		}
+		
+		
+		mtProducer.sendMessage(TextMessage.build(connectionId, threadId, this.getMessage("ENTER_PIN")));
+		return session;
 	}
 
-	private BaseMessage getInvalidPin(UUID connectionId, UUID threadId) {
-		return TextMessage.build(connectionId, threadId, this.getMessage("INVALID_PIN"));
+	private BaseMessage getInvalidPin(UUID connectionId, UUID threadId, String msisdn) {
+		return TextMessage.build(connectionId, threadId, this.getMessage("INVALID_PIN").replaceAll("NUMBER", msisdn));
 	}
 
 
-	private Session getSessionWIthConnectionId(UUID connectionId) {
+	private Session getSessionWithConnectionId(UUID connectionId) {
 		Query q = em.createNamedQuery("Session.findWithConnectionId");
 		q.setParameter("connectionId", connectionId);
 		Session session = (Session) q.getResultList().stream().findFirst().orElse(null);
@@ -281,12 +264,12 @@ public class Service {
 		return session;
 	}
 	
-	private Session getSessionWithMsisdn(String msisdn) {
+	private Session getSessionWithMsisdn(String msisdn, boolean create) {
 		Query q = em.createNamedQuery("Session.findWithMsisdn");
 		q.setParameter("msisdn", msisdn);
 		Session session = (Session) q.getResultList().stream().findFirst().orElse(null);
 		
-		if (session == null) {
+		if ((session == null) && create) {
 			session = new Session();
 			session.setId(UUID.randomUUID());
 			session.setMsisdn(msisdn);
@@ -354,42 +337,7 @@ public class Service {
 		return retval;
 	}
 	
-	private String buildVisionUrl(String url) {
-		
-		if(redirDomain.isPresent()) {
-			url = url + "&rd=" +  redirDomain.get();
-		}
-		if(qRedirDomain.isPresent()) {
-			url = url + "&q=" +  qRedirDomain.get();
-		}
-		if(dRedirDomain.isPresent()) {
-			url = url + "&d=" +  dRedirDomain.get();
-		}
-		if (language.isPresent()) {
-			url = url + "&lang=" +  language.get();
-		}
-		
-		return url;
-	}
-	private BaseMessage generateFaceVerificationMediaMessage(UUID connectionId, UUID threadId, String token) {
-		String url = faceVerificationUrl.replaceFirst("TOKEN", token);
-		url = this.buildVisionUrl(url);
-		
-		MediaItem mi = new MediaItem();
-		mi.setMimeType("text/html");
-		mi.setUri(url);
-		mi.setTitle(getMessage("FACE_VERIFICATION_HEADER"));
-		mi.setDescription(getMessage("FACE_VERIFICATION_DESC"));
-		mi.setOpeningMode("normal");
-		List<MediaItem> mis = new ArrayList<MediaItem>();
-		mis.add(mi);
-		MediaMessage mm = new MediaMessage();
-		mm.setConnectionId(connectionId);
-		mm.setThreadId(threadId);
-		mm.setDescription(getMessage("FACE_VERIFICATION_DESC"));
-		mm.setItems(mis);
-		return mm;
-	}
+	
 	
 	private boolean changeCommand(String content) {
 		
@@ -416,7 +364,7 @@ public class Service {
 	@Transactional
 	public void userInput(BaseMessage message) throws Exception {
 		
-		Session session = this.getSessionWIthConnectionId(message.getConnectionId());
+		Session session = this.getSessionWithConnectionId(message.getConnectionId());
 		
 		
 		
@@ -456,7 +404,14 @@ public class Service {
 			if (authEnabled) {
 				if (session.getAuthTs() == null) {
 					authenticated = false;
-					if (session.getVerifyingMsisdn() != null) {
+					
+					if (content.equals(CMD_ROOT_MENU_AUTHENTICATE.toString())) {
+						
+						session.setVerifyingMsisdn(null);
+						session.setVerifyingPin(null);
+						mtProducer.sendMessage(this.getMsisdnAuthRequest(message.getConnectionId(), message.getThreadId()));
+						
+					} else if (session.getVerifyingMsisdn() != null) {
 						// expecting pin
 						if (session.getVerifyingPin().equals(content)) {
 							
@@ -472,15 +427,12 @@ public class Service {
 							}
 							
 						} else {
-							mtProducer.sendMessage(this.getInvalidPin(message.getConnectionId(), message.getThreadId()));
+							mtProducer.sendMessage(this.getInvalidPin(message.getConnectionId(), message.getThreadId(), session.getVerifyingMsisdn()));
 						}
 					} else if (this.isValidMsisdn(content)) {
 						
 						
-						session.setVerifyingMsisdn(content);
-						session.setVerifyingPin("" + random.nextInt(10000));
-						session = em.merge(session);
-						mtProducer.sendMessage(getPinAuthRequest(message.getConnectionId(), message.getThreadId(), session.getVerifyingPin()));
+						session = this.getPinAuthRequest(session, message.getConnectionId(), message.getThreadId(), content);
 						
 					} else {
 						mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("ERROR_NOT_AUTHENTICATED")));
@@ -502,6 +454,7 @@ public class Service {
 				charged = false;
 			}
 			
+			logger.info("uche1");
 			if (authenticated && billingEnabled) {
 				
 				if (session.getSubscriptionTs() == null) {
@@ -573,8 +526,9 @@ public class Service {
 
 				}
 			}
-			
-			if (charged) {
+			//logger.info("uche2 authenticated:" + authenticated + " charged:" + charged);
+
+			if (authenticated && charged) {
 				
 				if (content.length()>maxUserInputLength) {
 					content = content.substring(0, maxUserInputLength);
@@ -592,14 +546,14 @@ public class Service {
 				} else if (content.equals(CMD_ROOT_MENU_LOGOUT.toString())) {
 					if (session != null) {
 						session.setAuthTs(null);
-						session.setMsisdn(null);
+						session.setConnectionId(null);
 						session = em.merge(session);
 					}
 					mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("UNAUTHENTICATED")));
 
 					if (authEnabled) {
-						session.setVerifyingMsisdn(null);
-						session.setVerifyingPin(null);
+						//session.setVerifyingMsisdn(null);
+						//session.setVerifyingPin(null);
 						mtProducer.sendMessage(this.getMsisdnAuthRequest(message.getConnectionId(), message.getThreadId()));
 					}
 					
@@ -621,19 +575,13 @@ public class Service {
 
 				}  else if ((session != null) && ( (session.getAuthTs() != null)|| (!authEnabled) )) {
 					
-					boolean validSubscription = true;
 					
-					if (billingEnabled) {
-						
-						
-						
-					} 
-					
-					if (validSubscription) {
 						if (content.startsWith(CMD_ROOT_MENU_ANIMATOR.toString())) {
-							
+							logger.info("uche22");
 							String[] specifiedAnim = content.split(" ");
 							if (specifiedAnim.length == 1) {
+								
+
 								mtProducer.sendMessage(this.getAnimatorMenu(message.getConnectionId(), message.getThreadId()));
 							} else {
 								Integer anim = null;
@@ -689,6 +637,7 @@ public class Service {
 							
 
 						} else {
+							logger.info("uche23");
 							if (session.getMemory() == null) {
 								mtProducer.sendMessage(this.getAnimatorMenu(message.getConnectionId(), message.getThreadId()));
 							} else {
@@ -698,7 +647,7 @@ public class Service {
 							}
 						}
 						
-					} 
+					
 					
 				}
 			}
@@ -802,8 +751,7 @@ public class Service {
 	public void successfullAuth(Session session, UUID connectionId, UUID threadId) throws Exception {
 		
 		
-		Session msisdnSession = this.getSessionWithMsisdn(session.getVerifyingMsisdn());
-		
+		Session msisdnSession = this.getSessionWithMsisdn(session.getVerifyingMsisdn(), false);
 		
 		if (msisdnSession == null) {
 			session.setMsisdn(session.getVerifyingMsisdn());
@@ -812,22 +760,35 @@ public class Service {
 			session.setAuthTs(Instant.now());
 			session = em.merge(session);
 			
+			
 		} else if (msisdnSession.getId().equals(session.getId())) {
 			session.setVerifyingMsisdn(null);
 			session.setVerifyingPin(null);
 			session.setAuthTs(Instant.now());
 			session = em.merge(session);
+			
 		} else {
+			
 			session.setMsisdn(session.getVerifyingMsisdn());
 			session.setVerifyingMsisdn(null);
 			session.setVerifyingPin(null);
 			session.setAuthTs(Instant.now());
+			session.setSubscriptionTs(msisdnSession.getSubscriptionTs());
+			session.setExpireTs(msisdnSession.getExpireTs());
+			session.setCanceledTs(msisdnSession.getCanceledTs());
+			if (session.getMemory() == null) {
+				if (msisdnSession.getMemory() != null) {
+					session.setMemory(msisdnSession.getMemory());
+					Memory m = session.getMemory();
+					m.setSessionId(session.getId());
+					m = em.merge(m);
+				}
+			}
+			em.remove(msisdnSession);
+			em.flush();
+			
 			session = em.merge(session);
 			
-			msisdnSession.setMsisdn(null);
-			msisdnSession.setAuthTs(null);
-			
-			msisdnSession = em.merge(msisdnSession);
 		}
 		
 		if (AUTH_SUCCESS.isPresent()) {
@@ -836,7 +797,7 @@ public class Service {
 			mtProducer.sendMessage(TextMessage.build(connectionId, threadId , this.getMessage("AUTHENTICATION_SUCCESS")));
 		}
 		//mtProducer.sendMessage(TextMessage.build(connectionId, null , this.getMessage("SET_MODEL").replaceAll("MODEL", session.getModel())));
-		mtProducer.sendMessage(this.getAnimatorMenu(connectionId, null));
+		//mtProducer.sendMessage(this.getAnimatorMenu(connectionId, null));
 		
 		
 		
@@ -845,6 +806,11 @@ public class Service {
 	
 	
 	public BaseMessage getAnimatorMenu(UUID connectionId, UUID threadId) {
+		
+		
+		//if (debug) logger.info("getAnimatorMenu");
+		
+		
 		List<MenuItem> menuItems = new ArrayList<MenuItem>();
 		
 		MenuDisplayMessage confirm = new MenuDisplayMessage();
@@ -877,7 +843,6 @@ public class Service {
 		Memory memory = (Memory) q.getResultList().stream().findFirst().orElse(null);
 		if (memory == null) {
 			memory = new Memory();
-			memory.setSessionId(session.getId());
 			memory.setMemoryId(UUID.randomUUID());
 			memory.setAnimator(animator);
 			em.persist(memory);
@@ -927,11 +892,11 @@ public class Service {
 		if ((session == null) || (( authEnabled) && (session.getAuthTs() == null)  )){
 			menu.setDescription(getMessage("ROOT_MENU_DEFAULT_DESCRIPTION"));
 			options.add(ContextualMenuItem.build(CMD_ROOT_MENU_AUTHENTICATE, getMessage("ROOT_MENU_AUTHENTICATE"), null));
-			if (ROOT_MENU_NO_CRED.isPresent()) {
+			/*if (ROOT_MENU_NO_CRED.isPresent()) {
 				options.add(ContextualMenuItem.build(CMD_ROOT_MENU_NO_CRED, ROOT_MENU_NO_CRED.get(), null));
 			} else {
 				options.add(ContextualMenuItem.build(CMD_ROOT_MENU_NO_CRED, getMessage("ROOT_MENU_NO_CRED"), null));
-			}
+			}*/
 			
 			
 		} else {
@@ -981,8 +946,9 @@ public class Service {
 
 
 
+	@Transactional
 	public void kineticNotifyPhoneCharging(ChargingEvent event) {
-		Session session = this.getSessionWithMsisdn(event.getUserTpda());
+		Session session = this.getSessionWithMsisdn(event.getUserTpda(), true);
 		// 	FULL, PARTIAL, COMPLEMENT, NO_FUNDS, TEMP_ERROR, PERM_ERROR, DISABLED_ENTITY, GIVING_UP, CONNECTION_ERROR
 
 		switch (event.getChargingEventType()) {
@@ -1000,10 +966,10 @@ public class Service {
 	}
 
 
-
-	public void kineticNotifyPhoneSubscription(SubscriptionEvent event) {
+	@Transactional
+	public void kineticNotifyPhoneSubscription(SubscriptionEvent event) throws JsonProcessingException {
 		
-		Session session = this.getSessionWithMsisdn(event.getUserTpda());
+		Session session = this.getSessionWithMsisdn(event.getUserTpda(), true);
 		
 		
 		switch (event.getSubscriptionEventType()) {
@@ -1032,8 +998,11 @@ public class Service {
 			mt.setEndpointFk(endpointFk);
 			mt.setPassword(endpointPassword);
 			
-			
-			kineticClient.sentMt(mt);
+			if (fakeKinetic) {
+				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+			} else {
+				kineticClient.sentMt(mt);
+			}
 			
 			if (session.getConnectionId() != null) {
 				try {
@@ -1057,18 +1026,32 @@ public class Service {
 	}
 
 
-
-	public void kineticNotifyMo(MoRequest request) {
+	@Transactional
+	public void kineticNotifyMo(MoRequest request) throws JsonProcessingException {
 		
 		if (!this.isValidMsisdn(request.getUserId())) {
 			logger.error("kineticNotifyMo: ignoring invalid msisdn: " + request.getUserId() + " " + request.getText());
 			return;
 		}
-		Session session = this.getSessionWithMsisdn(request.getUserId());
+		Session session = this.getSessionWithMsisdn(request.getUserId(), true);
 		
 		String content = request.getText();
 		
-		if ( billingEnabled && (session.getExpireTs() == null) || (session.getExpireTs().compareTo(Instant.now())<0)) {
+		if ( billingEnabled && ((session.getSubscriptionTs() == null) )) {
+			MtRequest mt = new MtRequest();
+			mt.setText(this.getMessage("SUBSCRIPTION_REQUIRED"));
+			mt.setUserId(request.getUserId());
+			mt.setRequestId(UUID.randomUUID());
+			mt.setVaServiceFk(vaServiceFk);
+			mt.setEndpointFk(endpointFk);
+			mt.setPassword(endpointPassword);
+			
+			if (fakeKinetic) {
+				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+			} else {
+				kineticClient.sentMt(mt);
+			}
+		} else if ( billingEnabled && ((session.getExpireTs() == null) || (session.getExpireTs().compareTo(Instant.now())<0))) {
 			MtRequest mt = new MtRequest();
 			mt.setText(this.getMessage("EXPIRED_SUBSCRIPTION"));
 			mt.setUserId(request.getUserId());
@@ -1077,8 +1060,11 @@ public class Service {
 			mt.setEndpointFk(endpointFk);
 			mt.setPassword(endpointPassword);
 			
-			
-			kineticClient.sentMt(mt);
+			if (fakeKinetic) {
+				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+			} else {
+				kineticClient.sentMt(mt);
+			}
 		} else if ((session.getMemory() == null) || content.startsWith(CMD_ROOT_MENU_RANDOM.toString()) || this.changeCommand(content)) {
 			
 			
@@ -1095,8 +1081,11 @@ public class Service {
 				mt.setEndpointFk(endpointFk);
 				mt.setPassword(endpointPassword);
 				
-				
-				kineticClient.sentMt(mt);
+				if (fakeKinetic) {
+					logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+				} else {
+					kineticClient.sentMt(mt);
+				}
 				
 
 				String result = bot.chat(session.getMemory().getMemoryId(), animService.get(0).getHello());
@@ -1110,8 +1099,11 @@ public class Service {
 				mt.setEndpointFk(endpointFk);
 				mt.setPassword(endpointPassword);
 				
-				kineticClient.sentMt(mt);
-				
+				if (fakeKinetic) {
+					logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+				} else {
+					kineticClient.sentMt(mt);
+				}				
 			} else {
 				Set<Integer> keys = anims.keySet();
 				List<Integer> others = new ArrayList<Integer>();
@@ -1142,8 +1134,11 @@ public class Service {
 				mt.setPassword(endpointPassword);
 				
 				
-				kineticClient.sentMt(mt);
-				
+				if (fakeKinetic) {
+					logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+				} else {
+					kineticClient.sentMt(mt);
+				}				
 				String result = bot.chat(session.getMemory().getMemoryId(), animService.get(0).getHello());
 				
 
@@ -1155,8 +1150,11 @@ public class Service {
 				mt.setEndpointFk(endpointFk);
 				mt.setPassword(endpointPassword);
 				
-				kineticClient.sentMt(mt);
-			}
+				if (fakeKinetic) {
+					logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+				} else {
+					kineticClient.sentMt(mt);
+				}			}
 			
 			
 
@@ -1169,8 +1167,11 @@ public class Service {
 			mt.setEndpointFk(endpointFk);
 			mt.setPassword(endpointPassword);
 			
-			kineticClient.sentMt(mt);
-
+			if (fakeKinetic) {
+				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+			} else {
+				kineticClient.sentMt(mt);
+			}
 		} else if (content.equals(CMD_ROOT_MENU_CLEAR.toString())) {
 			
 			if (session.getMemory() != null) {
@@ -1187,8 +1188,11 @@ public class Service {
 			mt.setPassword(endpointPassword);
 			
 			
-			kineticClient.sentMt(mt);
-
+			if (fakeKinetic) {
+				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+			} else {
+				kineticClient.sentMt(mt);
+			}
 		}  else {
 			
 			content = content.strip();
@@ -1208,8 +1212,11 @@ public class Service {
 			mt.setPassword(endpointPassword);
 			
 			
-			kineticClient.sentMt(mt);
-			
+			if (fakeKinetic) {
+				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+			} else {
+				kineticClient.sentMt(mt);
+			}			
 			
 		}
 		

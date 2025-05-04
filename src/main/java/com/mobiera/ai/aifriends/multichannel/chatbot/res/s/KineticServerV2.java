@@ -83,8 +83,16 @@ public class KineticServerV2 {
 	@POST
     @Path("/messaging/mo")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public void mo(MoRequest request) {
-		service.kineticNotifyMo(request);
+	public Response mo(MoRequest request) {
+		try {
+			service.kineticNotifyMo(request);
+			
+		} catch (Exception e) {
+			
+			logger.error("", e);
+			return  Response.status(Status.INTERNAL_SERVER_ERROR).build();
+		}
+		return  Response.status(Status.OK).build();
 	}
 	
 }

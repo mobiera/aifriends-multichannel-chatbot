@@ -15,11 +15,11 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name="memory", indexes = {
-        @Index(name = "memory_idx", columnList = "animator, connectionId")})
+        @Index(name = "memory_idx", columnList = "animator, sessionId")})
 @DynamicUpdate
 @DynamicInsert
 @NamedQueries({
-	@NamedQuery(name="Session.findMemory", query="SELECT m FROM Memory m where m.animator=:animator and m.connectionId=:connectionId "),
+	@NamedQuery(name="Session.findMemory", query="SELECT m FROM Memory m where m.animator=:animator and m.sessionId=:sessionId "),
 })
 public class Memory {
 

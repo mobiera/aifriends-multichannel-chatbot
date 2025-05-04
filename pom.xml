@@ -65,7 +65,7 @@
         		 <dependency>
             <groupId>com.mobiera.libs</groupId>
             <artifactId>aircast-api-jakarta</artifactId>
-            <version>1.2</version>
+            <version>1.4</version>
         </dependency>
         
         <dependency>
@@ -144,11 +144,7 @@
       <artifactId>quarkus-artemis-jms</artifactId>
       <version>3.8.0</version>
     </dependency>
-    <dependency>
-    <groupId>io.github.ollama4j</groupId>
-    <artifactId>ollama4j</artifactId>
-    <version>1.0.89</version>
-</dependency>
+   
      <dependency>
       <groupId>org.graalvm.sdk</groupId>
       <artifactId>nativeimage</artifactId>
