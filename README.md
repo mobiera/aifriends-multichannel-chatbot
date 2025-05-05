@@ -6,4 +6,52 @@ A simple conversational demo service (chatbot) for chatting with AI Friends. Use
 
 See [k8s/example](k8s/example/) for a deployment example.
 
-Demo invitation [here](https://hologram.zone/?oob=eyJAdHlwZSI6Imh0dHBzOi8vZGlkY29tbS5vcmcvb3V0LW9mLWJhbmQvMS4xL2ludml0YXRpb24iLCJAaWQiOiJmNTBjZWI2Yy05ZmEzLTQ2NGEtOTM1Mi0xYmRjNmFiM2VmYTMiLCJsYWJlbCI6IkFJIEZyaWVuZHMhIiwiYWNjZXB0IjpbImRpZGNvbW0vYWlwMSIsImRpZGNvbW0vYWlwMjtlbnY9cmZjMTkiXSwiaGFuZHNoYWtlX3Byb3RvY29scyI6WyJodHRwczovL2RpZGNvbW0ub3JnL2RpZGV4Y2hhbmdlLzEuMSIsImh0dHBzOi8vZGlkY29tbS5vcmcvY29ubmVjdGlvbnMvMS4wIl0sInNlcnZpY2VzIjpbImRpZDp3ZWI6YWlmcmllbmRzLmRlbW9zLjIwNjAuaW8iXSwiaW1hZ2VVcmwiOiJodHRwczovL3EuYWlmcmllbmRzLmRlbW9zLjIwNjAuaW8vYXZhdGFyLnBuZyJ9)
+Provides 2 channels:
+
+- SMS channel
+- Hologram channel
+
+When user interacts through SMS channel, a random friend is selected. User can change friend by writing /change or any keyword defined in com.mobiera.ai.chatbot.anim.random.commands. Example:
+
+```
+com.mobiera.ai.chatbot.anim.random.commands=change,cambiar
+```
+
+Both channels can be used at the same time.
+
+## Integration with Kinetic Server Aircast Module
+
+Support Kinetic V2 protocol. Must use kinetic-server > v2.1-pre1 to use support for MO messages by using rest and not SMPP 
+
+```
+com.mobiera.ai.chatbot.msisdn.prefix=51
+com.mobiera.ai.chatbot.msisdn.minlength=10
+com.mobiera.ai.chatbot.msisdn.maxlength=11
+
+com.mobiera.ai.chatbot.billing.enabled=true
+com.mobiera.ai.chatbot.vaservicefk=5678
+com.mobiera.ai.chatbot.endpointfk=1234
+com.mobiera.ai.chatbot.password=password
+
+com.mobiera.ai.aifriends.multichannel.chatbot.res.c.KineticClient/mp-rest/url=http://kinetic:8181/
+```
+
+## Enabling msisdn authentication for DIDComm AI Agent (required when using service with Hologram)
+
+Sends a PIN by SMS to user to verify its phone number
+
+```
+com.mobiera.ai.chatbot.auth.enabled=true
+```
+
+## Activating Kinetic billing
+
+```
+com.mobiera.ai.chatbot.billing.enabled=true
+```
+
+## Setting OpenAI token
+
+```
+quarkus.langchain4j.openai.api-key=sk...
+```
