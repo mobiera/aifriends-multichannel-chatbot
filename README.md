@@ -36,6 +36,14 @@ com.mobiera.ai.chatbot.password=password
 com.mobiera.ai.aifriends.multichannel.chatbot.res.c.KineticClient/mp-rest/url=http://kinetic:8181/
 ```
 
+For sending events (subscriptions, payments, mo) to the service, check the swagger for the kinetic v2 server endpoint.
+
+```
+/subscription/event
+/charging/event
+/messaging/mo
+```
+
 ## Enabling msisdn authentication for DIDComm AI Agent (required when using service with Hologram)
 
 Sends a PIN by SMS to user to verify its phone number
