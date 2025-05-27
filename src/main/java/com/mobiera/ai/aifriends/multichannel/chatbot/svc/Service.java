@@ -126,6 +126,10 @@ public class Service {
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.msisdn.maxlength")
 	Integer msisdnMaxLength;
 	
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.msisdn.example")
+	String msisdnExample;
+	
+	
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.vaservicefk")
 	Long vaServiceFk;
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.endpointfk")
@@ -214,7 +218,9 @@ public class Service {
 	
 	
 	private BaseMessage getMsisdnAuthRequest(UUID connectionId, UUID threadId) {
-		return TextMessage.build(connectionId, threadId, this.getMessage("ENTER_PHONE_NUMBER"));
+		return TextMessage.build(connectionId, threadId, this.getMessage("ENTER_PHONE_NUMBER").replaceAll("EXAMPLE_NUMBER", msisdnExample)
+				.replaceAll("PHONE_PREFIX", msisdnCountryPrefix)
+				);
 	}
 
 
