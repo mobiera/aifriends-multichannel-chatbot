@@ -132,6 +132,12 @@ public class Service {
 	
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.vaservicefk")
 	Long vaServiceFk;
+	
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.verifiable.service.url")
+	String verifiableServiceUrl;
+	
+	
+	
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.endpointfk")
 	Long endpointFk;
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.password")
@@ -246,7 +252,7 @@ public class Service {
 		}
 		
 		
-		mtProducer.sendMessage(TextMessage.build(connectionId, threadId, this.getMessage("ENTER_PIN")));
+		mtProducer.sendMessage(TextMessage.build(connectionId, threadId, this.getMessage("ENTER_PIN").replaceAll("NUMBER", msisdn)));
 		return session;
 	}
 
@@ -984,6 +990,20 @@ public class Service {
 			session.setSubscriptionTs(Instant.now());
 			session = em.merge(session);
 			
+			MtRequest mt = new MtRequest();
+			mt.setText(this.getMessage("WELCOME_SEND_URL_TO_VS").replaceAll("VERIFIABLE_SERVICE_URL", verifiableServiceUrl));
+			mt.setUserId(event.getUserId());
+			mt.setRequestId(UUID.randomUUID());
+			mt.setVaServiceFk(vaServiceFk);
+			mt.setEndpointFk(endpointFk);
+			mt.setPassword(endpointPassword);
+			
+			if (fakeKinetic) {
+				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+			} else {
+				kineticClient.sentMt(mt);
+			}
+			
 			if (session.getConnectionId() == null) {
 				MoRequest mo = new MoRequest();
 				mo.setUserId(event.getUserTpda());
@@ -1055,6 +1075,7 @@ public class Service {
 			if (fakeKinetic) {
 				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 			} else {
+				logger.info("kineticNotifyMo: sending mt: " + JsonUtil.serialize(mt, false));
 				kineticClient.sentMt(mt);
 			}
 		} else if ( billingEnabled && ((session.getExpireTs() == null) || (session.getExpireTs().compareTo(Instant.now())<0))) {
@@ -1069,9 +1090,11 @@ public class Service {
 			if (fakeKinetic) {
 				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 			} else {
+				logger.info("kineticNotifyMo: sending mt: " + JsonUtil.serialize(mt, false));
 				kineticClient.sentMt(mt);
 			}
 		} else if ((session.getMemory() == null) || content.startsWith(CMD_ROOT_MENU_RANDOM.toString()) || this.changeCommand(content)) {
+			
 			
 			
 			TreeMap<Integer,Animator> anims = animService.getAnimators();
@@ -1090,6 +1113,8 @@ public class Service {
 				if (fakeKinetic) {
 					logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 				} else {
+					logger.info("kineticNotifyMo: sending mt: " + JsonUtil.serialize(mt, false));
+
 					kineticClient.sentMt(mt);
 				}
 				
@@ -1108,6 +1133,8 @@ public class Service {
 				if (fakeKinetic) {
 					logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 				} else {
+					logger.info("kineticNotifyMo: sending mt: " + JsonUtil.serialize(mt, false));
+
 					kineticClient.sentMt(mt);
 				}				
 			} else {
@@ -1143,6 +1170,8 @@ public class Service {
 				if (fakeKinetic) {
 					logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 				} else {
+					logger.info("kineticNotifyMo: sending mt: " + JsonUtil.serialize(mt, false));
+
 					kineticClient.sentMt(mt);
 				}				
 				String result = bot.chat(session.getMemory().getMemoryId(), animService.get(0).getHello());
@@ -1159,8 +1188,12 @@ public class Service {
 				if (fakeKinetic) {
 					logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 				} else {
+					logger.info("kineticNotifyMo: sending mt: " + JsonUtil.serialize(mt, false));
+
 					kineticClient.sentMt(mt);
-				}			}
+				}			
+				
+			}
 			
 			
 
@@ -1176,6 +1209,8 @@ public class Service {
 			if (fakeKinetic) {
 				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 			} else {
+				logger.info("kineticNotifyMo: sending mt: " + JsonUtil.serialize(mt, false));
+
 				kineticClient.sentMt(mt);
 			}
 		} else if (content.equals(CMD_ROOT_MENU_CLEAR.toString())) {
@@ -1197,6 +1232,8 @@ public class Service {
 			if (fakeKinetic) {
 				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 			} else {
+				logger.info("kineticNotifyMo: sending mt: " + JsonUtil.serialize(mt, false));
+
 				kineticClient.sentMt(mt);
 			}
 		}  else {
@@ -1221,6 +1258,8 @@ public class Service {
 			if (fakeKinetic) {
 				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 			} else {
+				logger.info("kineticNotifyMo: sending mt: " + JsonUtil.serialize(mt, false));
+
 				kineticClient.sentMt(mt);
 			}			
 			
