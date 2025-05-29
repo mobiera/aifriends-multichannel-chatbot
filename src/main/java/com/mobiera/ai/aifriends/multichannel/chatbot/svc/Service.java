@@ -24,6 +24,7 @@ import com.mobiera.ai.aifriends.multichannel.chatbot.model.Memory;
 import com.mobiera.ai.aifriends.multichannel.chatbot.model.Session;
 import com.mobiera.ai.aifriends.multichannel.chatbot.res.c.KineticClient;
 import com.mobiera.aircast.api.adsafe.GetPricepointRequest;
+import com.mobiera.aircast.api.adsafe.GetVaServiceRequest;
 import com.mobiera.aircast.api.adsafe.ListPricepointsRequest;
 import com.mobiera.aircast.api.adsafe.MoRequest;
 import com.mobiera.aircast.api.adsafe.MtRequest;
@@ -133,8 +134,6 @@ public class Service {
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.vaservicefk")
 	Long vaServiceFk;
 	
-	@ConfigProperty(name = "com.mobiera.ai.chatbot.verifiable.service.url")
-	String verifiableServiceUrl;
 	
 	
 	
@@ -991,21 +990,33 @@ public class Service {
 			session.setSubscriptionTs(Instant.now());
 			session = em.merge(session);
 			
-			MtRequest mt = new MtRequest();
-			mt.setText(this.getMessage("WELCOME_SEND_URL_TO_VS").replaceAll("VERIFIABLE_SERVICE_URL", verifiableServiceUrl));
-			mt.setUserId(event.getUserId());
-			mt.setRequestId(UUID.randomUUID());
-			mt.setVaServiceFk(vaServiceFk);
-			mt.setEndpointFk(endpointFk);
-			mt.setPassword(endpointPassword);
+			GetVaServiceRequest req = new GetVaServiceRequest();
+			req.setEndpointFk(endpointFk);
+			req.setPassword(endpointPassword);
+			req.setVaServiceFk(vaServiceFk);
 			
-			if (fakeKinetic) {
-				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
-			} else {
-				logger.info("kineticNotifyPhoneSubscription: " + JsonUtil.serialize(mt, false));
+			try {
+				MtRequest mt = new MtRequest();
+				
+				mt.setText(this.getMessage("WELCOME_SEND_URL_TO_VS").replaceAll("VERIFIABLE_SERVICE_URL", kineticClient.getVaService(req).getUrl()));
+				mt.setUserId(event.getUserId());
+				mt.setRequestId(UUID.randomUUID());
+				mt.setVaServiceFk(vaServiceFk);
+				mt.setEndpointFk(endpointFk);
+				mt.setPassword(endpointPassword);
+				
+				if (fakeKinetic) {
+					logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+				} else {
+					logger.info("kineticNotifyPhoneSubscription: " + JsonUtil.serialize(mt, false));
 
-				kineticClient.sentMt(mt);
+					kineticClient.sentMt(mt);
+				}
+			} catch (Exception e) {
+				logger.error("", e);
 			}
+			
+			
 			
 			if (session.getConnectionId() == null) {
 				MoRequest mo = new MoRequest();
