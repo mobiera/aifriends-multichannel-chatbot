@@ -248,6 +248,7 @@ public class Service {
 		if (fakeKinetic) {
 			logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 		} else {
+			logger.info("fakeKinetic: getPinAuthRequest: " + JsonUtil.serialize(mt, false));
 			kineticClient.sentMt(mt);
 		}
 		
@@ -1001,6 +1002,8 @@ public class Service {
 			if (fakeKinetic) {
 				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 			} else {
+				logger.info("kineticNotifyPhoneSubscription: " + JsonUtil.serialize(mt, false));
+
 				kineticClient.sentMt(mt);
 			}
 			
@@ -1027,6 +1030,8 @@ public class Service {
 			if (fakeKinetic) {
 				logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
 			} else {
+				logger.info("kineticNotifyPhoneSubscription: " + JsonUtil.serialize(mt, false));
+
 				kineticClient.sentMt(mt);
 			}
 			
