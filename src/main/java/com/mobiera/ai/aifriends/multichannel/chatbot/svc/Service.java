@@ -510,7 +510,7 @@ public class Service {
 									sr.setEndpointFk(endpointFk);
 									sr.setIdentifierFk(idFk);
 									sr.setUserId(session.getMsisdn());
-									
+									sr.setRequestId(UUID.randomUUID());
 									kineticClient.subscribe(sr);
 									
 									mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("SUBSCRIPION_REQUESTED").replaceAll("PRICEPOINT", pp.getName())));
@@ -1000,6 +1000,7 @@ public class Service {
 				
 				mt.setText(this.getMessage("WELCOME_SEND_URL_TO_VS").replaceAll("VERIFIABLE_SERVICE_URL", kineticClient.getVaService(req).getUrl()));
 				mt.setUserId(event.getUserId());
+				if (mt.getUserId() == null) mt.setUserId(event.getUserTpda());
 				mt.setRequestId(UUID.randomUUID());
 				mt.setVaServiceFk(vaServiceFk);
 				mt.setEndpointFk(endpointFk);
@@ -1033,6 +1034,7 @@ public class Service {
 			MtRequest mt = new MtRequest();
 			mt.setText(this.getMessage("UNSUBSCRIBED"));
 			mt.setUserId(event.getUserId());
+			if (mt.getUserId() == null) mt.setUserId(event.getUserTpda());
 			mt.setRequestId(UUID.randomUUID());
 			mt.setVaServiceFk(vaServiceFk);
 			mt.setEndpointFk(endpointFk);
