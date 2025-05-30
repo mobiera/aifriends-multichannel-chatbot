@@ -28,7 +28,11 @@ import com.mobiera.aircast.api.adsafe.GetVaServiceRequest;
 import com.mobiera.aircast.api.adsafe.ListPricepointsRequest;
 import com.mobiera.aircast.api.adsafe.MoRequest;
 import com.mobiera.aircast.api.adsafe.MtRequest;
+import com.mobiera.aircast.api.adsafe.OtpRequest;
+import com.mobiera.aircast.api.adsafe.OtpRequestResponse;
+import com.mobiera.aircast.api.adsafe.OtpValidation;
 import com.mobiera.aircast.api.adsafe.SubscribeRequest;
+import com.mobiera.aircast.api.adsafe.ValidationResponse;
 import com.mobiera.aircast.api.vo.PricepointVO;
 import com.mobiera.aircast.commons.enums.PricepointType;
 import com.mobiera.ms.mno.api.json.ChargingEvent;
@@ -232,25 +236,23 @@ public class Service {
 	private Session getPinAuthRequest(Session session, UUID connectionId, UUID threadId, String msisdn) throws Exception {
 		
 		session.setVerifyingMsisdn(msisdn);
-		session.setVerifyingPin("" + random.nextInt(10000));
 		session = em.merge(session);
 		
-		
-		MtRequest mt = new MtRequest();
-		mt.setText(this.getMessage("YOUR_PIN").replaceAll("PIN", session.getVerifyingPin()));
-		mt.setUserId(msisdn);
-		mt.setRequestId(UUID.randomUUID());
-		mt.setVaServiceFk(vaServiceFk);
-		mt.setEndpointFk(endpointFk);
-		mt.setPassword(endpointPassword);
+		OtpRequest otpr = new OtpRequest();
+		otpr.setEndpointFk(endpointFk);
+		otpr.setPassword(endpointPassword);
+		otpr.setRequestId(UUID.randomUUID());
+		otpr.setUserId(msisdn);
 		
 		if (fakeKinetic) {
-			logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));
+			logger.info("fakeKinetic: " + JsonUtil.serialize(otpr, false));
 		} else {
-			logger.info("fakeKinetic: getPinAuthRequest: " + JsonUtil.serialize(mt, false));
-			kineticClient.sentMt(mt);
+			logger.info("fakeKinetic: otpr: " + JsonUtil.serialize(otpr, false));
+			OtpRequestResponse resp = kineticClient.otpRequest(otpr);
+			session.setOtpRequestId(resp.getOtpRequestId());
+			
+			session = em.merge(session);
 		}
-		
 		
 		mtProducer.sendMessage(TextMessage.build(connectionId, threadId, this.getMessage("ENTER_PIN").replaceAll("NUMBER", msisdn)));
 		return session;
@@ -420,26 +422,40 @@ public class Service {
 					if (content.equals(CMD_ROOT_MENU_AUTHENTICATE.toString())) {
 						
 						session.setVerifyingMsisdn(null);
-						session.setVerifyingPin(null);
+						session.setAuthCode(null);
+						session.setOtpRequestId(null);
 						mtProducer.sendMessage(this.getMsisdnAuthRequest(message.getConnectionId(), message.getThreadId()));
 						
 					} else if (session.getVerifyingMsisdn() != null) {
 						// expecting pin
-						if (session.getVerifyingPin().equals(content)) {
-							
-							successfullAuth(session, message.getConnectionId(), message.getThreadId());
-							
-							if (session.getMemory() != null) {
-								mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("ANIM_SELECTED").replaceAll("ANIMATOR", getAnimatorLabel(session))));
-
-								String result = bot.chat(session.getMemory().getMemoryId(), animService.get(session.getMemory().getAnimator()).getHello());
-								mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
-							} else {
-								mtProducer.sendMessage(this.getAnimatorMenu(message.getConnectionId(), message.getThreadId()));
-							}
-							
+						
+						OtpValidation ov = new OtpValidation();
+						ov.setEndpointFk(endpointFk);
+						ov.setPassword(endpointPassword);
+						ov.setOtp(content);
+						ov.setOtpRequestId(session.getOtpRequestId());
+						
+						if (fakeKinetic) {
+							logger.info("fakeKinetic: " + JsonUtil.serialize(ov, false));
 						} else {
-							mtProducer.sendMessage(this.getInvalidPin(message.getConnectionId(), message.getThreadId(), session.getVerifyingMsisdn()));
+							logger.info("fakeKinetic: userInput: " + JsonUtil.serialize(ov, false));
+							ValidationResponse vr = kineticClient.otpValidation(ov);
+							
+							if ((vr != null) && (vr.getAuthCode() != null)) {
+								session.setAuthCode(vr.getAuthCode());
+								successfullAuth(session, message.getConnectionId(), message.getThreadId());
+								
+								if (session.getMemory() != null) {
+									mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("ANIM_SELECTED").replaceAll("ANIMATOR", getAnimatorLabel(session))));
+
+									String result = bot.chat(session.getMemory().getMemoryId(), animService.get(session.getMemory().getAnimator()).getHello());
+									mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), result));
+								} else {
+									mtProducer.sendMessage(this.getAnimatorMenu(message.getConnectionId(), message.getThreadId()));
+								}
+							} else {
+								mtProducer.sendMessage(this.getInvalidPin(message.getConnectionId(), message.getThreadId(), session.getVerifyingMsisdn()));
+							}
 						}
 					} else if (this.isValidMsisdn(content)) {
 						
@@ -450,7 +466,8 @@ public class Service {
 						mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("ERROR_NOT_AUTHENTICATED")));
 						
 						session.setVerifyingMsisdn(null);
-						session.setVerifyingPin(null);
+						session.setOtpRequestId(null);
+						session.setAuthCode(null);
 						session.setMsisdn(null);
 						mtProducer.sendMessage(this.getMsisdnAuthRequest(message.getConnectionId(), message.getThreadId()));
 
@@ -511,6 +528,8 @@ public class Service {
 									sr.setIdentifierFk(idFk);
 									sr.setUserId(session.getMsisdn());
 									sr.setRequestId(UUID.randomUUID());
+									sr.setAuthCode(session.getAuthCode().toString());
+									
 									kineticClient.subscribe(sr);
 									
 									mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("SUBSCRIPION_REQUESTED").replaceAll("PRICEPOINT", pp.getName())));
@@ -549,7 +568,8 @@ public class Service {
 				if (content.equals(CMD_ROOT_MENU_AUTHENTICATE.toString()) && (session.getAuthTs() == null)) {
 					
 					session.setVerifyingMsisdn(null);
-					session.setVerifyingPin(null);
+					session.setOtpRequestId(null);
+					session.setAuthCode(null);
 					mtProducer.sendMessage(this.getMsisdnAuthRequest(message.getConnectionId(), message.getThreadId()));
 					
 				} else if (content.equals(CMD_ROOT_MENU_OPTION1.toString())) {
@@ -768,14 +788,12 @@ public class Service {
 		if (msisdnSession == null) {
 			session.setMsisdn(session.getVerifyingMsisdn());
 			session.setVerifyingMsisdn(null);
-			session.setVerifyingPin(null);
 			session.setAuthTs(Instant.now());
 			session = em.merge(session);
 			
 			
 		} else if (msisdnSession.getId().equals(session.getId())) {
 			session.setVerifyingMsisdn(null);
-			session.setVerifyingPin(null);
 			session.setAuthTs(Instant.now());
 			session = em.merge(session);
 			
@@ -783,7 +801,6 @@ public class Service {
 			
 			session.setMsisdn(session.getVerifyingMsisdn());
 			session.setVerifyingMsisdn(null);
-			session.setVerifyingPin(null);
 			session.setAuthTs(Instant.now());
 			session.setSubscriptionTs(msisdnSession.getSubscriptionTs());
 			session.setExpireTs(msisdnSession.getExpireTs());
@@ -1005,6 +1022,7 @@ public class Service {
 				mt.setVaServiceFk(vaServiceFk);
 				mt.setEndpointFk(endpointFk);
 				mt.setPassword(endpointPassword);
+				
 				
 				if (fakeKinetic) {
 					logger.info("fakeKinetic: " + JsonUtil.serialize(mt, false));

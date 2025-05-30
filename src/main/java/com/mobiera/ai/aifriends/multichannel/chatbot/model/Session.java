@@ -47,7 +47,7 @@ public class Session implements Serializable {
 	private String msisdn;
 	
 	private String verifyingMsisdn;
-	private String verifyingPin;
+	private UUID otpRequestId;
 	
 	
 	@ManyToOne(fetch = FetchType.LAZY)
@@ -74,6 +74,7 @@ public class Session implements Serializable {
 	@Column(columnDefinition="timestamptz")
 	private Instant canceledTs;
 	
+	private UUID authCode;
 	
 	public UUID getConnectionId() {
 		return connectionId;
@@ -142,13 +143,7 @@ public class Session implements Serializable {
 		this.verifyingMsisdn = verifyingMsisdn;
 	}
 
-	public String getVerifyingPin() {
-		return verifyingPin;
-	}
-
-	public void setVerifyingPin(String verifyingPin) {
-		this.verifyingPin = verifyingPin;
-	}
+	
 
 	public Instant getSubscriptionTs() {
 		return subscriptionTs;
@@ -172,6 +167,22 @@ public class Session implements Serializable {
 
 	public void setCanceledTs(Instant canceledTs) {
 		this.canceledTs = canceledTs;
+	}
+
+	public UUID getAuthCode() {
+		return authCode;
+	}
+
+	public void setAuthCode(UUID authCode) {
+		this.authCode = authCode;
+	}
+
+	public UUID getOtpRequestId() {
+		return otpRequestId;
+	}
+
+	public void setOtpRequestId(UUID otpRequestId) {
+		this.otpRequestId = otpRequestId;
 	}
 
 	
