@@ -439,7 +439,16 @@ public class Service {
 							logger.info("fakeKinetic: " + JsonUtil.serialize(ov, false));
 						} else {
 							logger.info("fakeKinetic: userInput: " + JsonUtil.serialize(ov, false));
-							ValidationResponse vr = kineticClient.otpValidation(ov);
+							
+							ValidationResponse vr = null;
+							
+							try {
+								vr = kineticClient.otpValidation(ov);
+							} catch (Exception e) {
+								logger.info("fakeKinetic: userInput: ", e);
+								
+							}
+							
 							
 							if ((vr != null) && (vr.getAuthCode() != null)) {
 								session.setAuthCode(vr.getAuthCode());
