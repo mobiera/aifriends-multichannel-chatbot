@@ -437,6 +437,8 @@ public class Service {
 						
 						if (fakeKinetic) {
 							logger.info("fakeKinetic: " + JsonUtil.serialize(ov, false));
+							
+							
 						} else {
 							logger.info("fakeKinetic: userInput: " + JsonUtil.serialize(ov, false));
 							
@@ -492,7 +494,6 @@ public class Service {
 				charged = false;
 			}
 			
-			logger.info("uche1");
 			if (authenticated && billingEnabled) {
 				
 				if (session.getSubscriptionTs() == null) {
@@ -579,6 +580,7 @@ public class Service {
 					session.setVerifyingMsisdn(null);
 					session.setOtpRequestId(null);
 					session.setAuthCode(null);
+					session = em.merge(session);
 					mtProducer.sendMessage(this.getMsisdnAuthRequest(message.getConnectionId(), message.getThreadId()));
 					
 				} else if (content.equals(CMD_ROOT_MENU_OPTION1.toString())) {
@@ -587,7 +589,9 @@ public class Service {
 				} else if (content.equals(CMD_ROOT_MENU_LOGOUT.toString())) {
 					if (session != null) {
 						session.setAuthTs(null);
-						session.setConnectionId(null);
+						session.setOtpRequestId(null);
+						session.setAuthCode(null);
+						//session.setConnectionId(null);
 						session = em.merge(session);
 					}
 					mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId() , this.getMessage("UNAUTHENTICATED")));
