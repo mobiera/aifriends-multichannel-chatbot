@@ -246,7 +246,7 @@ public class Service {
 		otpr.setPassword(endpointPassword);
 		otpr.setRequestId(UUID.randomUUID());
 		otpr.setUserId(msisdn);
-		otpr.setUserIpAddr("127.0.0.1");
+		otpr.setUserIpAddr("8.8.8.8");
 		otpr.setLandingFk(authLandingFk);
 		
 		if (fakeKinetic) {
