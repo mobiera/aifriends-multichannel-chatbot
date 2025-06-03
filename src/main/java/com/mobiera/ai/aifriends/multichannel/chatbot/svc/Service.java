@@ -138,6 +138,9 @@ public class Service {
 	@ConfigProperty(name = "com.mobiera.ai.chatbot.vaservicefk")
 	Long vaServiceFk;
 	
+	@ConfigProperty(name = "com.mobiera.ai.chatbot.authlandingfk")
+	Long authLandingFk;
+	
 	
 	
 	
@@ -243,6 +246,8 @@ public class Service {
 		otpr.setPassword(endpointPassword);
 		otpr.setRequestId(UUID.randomUUID());
 		otpr.setUserId(msisdn);
+		otpr.setUserIpAddr("127.0.0.1");
+		otpr.setLandingFk(authLandingFk);
 		
 		if (fakeKinetic) {
 			logger.info("fakeKinetic: " + JsonUtil.serialize(otpr, false));
