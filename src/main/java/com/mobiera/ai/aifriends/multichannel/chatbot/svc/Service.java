@@ -533,18 +533,18 @@ public class Service {
 								gpp.setPassword(endpointPassword);
 								gpp.setPricepointFk(ppId);
 								PricepointVO pp = kineticClient.getPricepoint(gpp);
-										
+								
 								if (pp != null) {
-									Long idFk = pp.getDefaultKeywordIdentifierFk();
+									Long landingFk = pp.getDefaultAuthzLandingFk();
 									
 									SubscribeRequest sr = new SubscribeRequest();
 									sr.setPassword(endpointPassword);
 									sr.setEndpointFk(endpointFk);
-									sr.setIdentifierFk(idFk);
+									sr.setLandingFk(landingFk);
 									sr.setUserId(session.getMsisdn());
 									sr.setRequestId(UUID.randomUUID());
 									sr.setAuthCode(session.getAuthCode().toString());
-									
+									sr.setUserIpAddr("8.8.8.8");
 									kineticClient.subscribe(sr);
 									
 									mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("SUBSCRIPION_REQUESTED").replaceAll("PRICEPOINT", pp.getName())));
