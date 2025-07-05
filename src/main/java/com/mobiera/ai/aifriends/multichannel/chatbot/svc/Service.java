@@ -545,9 +545,18 @@ public class Service {
 									sr.setRequestId(UUID.randomUUID());
 									sr.setAuthCode(session.getAuthCode().toString());
 									sr.setUserIpAddr("8.8.8.8");
-									kineticClient.subscribe(sr);
+									try {
+										kineticClient.subscribe(sr);
+										mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("SUBSCRIPION_REQUESTED").replaceAll("PRICEPOINT", pp.getName())));
+
+									} catch (Exception e) {
+										logger.error("userInput: subscription failed, maybe invalid msisdn: " + session.getMsisdn());
+										mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("SUBSCRIPION_ERROR").replaceAll("PRICEPOINT", pp.getName())));
+										mtProducer.sendMessage(buildSubscriptionOfferMenu(message.getConnectionId(), message.getThreadId()));
+
+									}
 									
-									mtProducer.sendMessage(TextMessage.build(message.getConnectionId(), message.getThreadId(), this.getMessage("SUBSCRIPION_REQUESTED").replaceAll("PRICEPOINT", pp.getName())));
+									
 
 								}
 								
